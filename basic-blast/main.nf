@@ -4,21 +4,23 @@
  * Defines the pipeline inputs parameters (giving a default value for each for them)
  * Each of the following parameters can be specified as command line options
  */
-/*params.query = "$baseDir/data/sample.fa"
+/*params.query = "$/data/sample.fa"
 *params.db = "$baseDir/blast-db/pdb/tiny"
 */
 
-params.query = "/bigsas/invaio/LysM/Rudd2015/orths/Mgraminicolav2.FrozenGeneCatalog20080910.proteins.fasta"
-params.db = "/bigsas/invaio/fungal/TreeseiV2_FrozenGeneCatalog20081022.proteins.fasta"
+//qry = "mgram.biotch.fa"
 
+//print launchDir + "\n\n\n"
 
-params.out = "result.txt"
-params.chunkSize = 100
+params.query = launchDir +  '/' +  params.qry 
+params.db = launchDir + '/' + params.database
 
- 
  
 db_name = file(params.db).name
-db_dir = file(params.db).parent
+db_dir = file(params.db).parent 
+
+       
+
  
 /*
  * Given the query parameter creates a channel emitting the query fasta file(s),
@@ -39,13 +41,14 @@ process blast {
     input:
     path 'query.fa' from fasta_ch
     path db from db_dir
- 
+    
     output:
-    file 'top_hits' into hits_ch
+
+        file 'all_hits' into hits_ch       
+ //   file 'top_hits' into hits_ch
  
     """
-    blastp -db $db_dir/$db_name -query query.fa -outfmt 6 > blast_result
-    cat blast_result | head -n 10 | cut -f 2 > top_hits
+    blastp -db $db_dir/$db_name -query query.fa -outfmt 6 > all_hits 
     """
 
 }
@@ -53,24 +56,50 @@ process blast {
 /*
  * Each time a file emitted by the 'top_hits' channel an extract job is executed
  * producing a file containing the matching sequences
- */
-process extract {
-    input:
-    path 'top_hits' from hits_ch
-    path db from db_dir
- 
-    output:
-    file 'sequences' into sequences_ch
- 
-    """
-    blastdbcmd -db $db/$db_name -entry_batch top_hits | head -n 10 > sequences
-    """
-}
+ *
+*
+*process extract {
+*    input:
+*    path 'top_hits' from hits_ch
+*    path db from db_dir
+* 
+*    output:
+*    file 'sequences' into sequences_ch
+* 
+*    """
+*    blastdbcmd -db $db/$db_name -entry_batch top_hits | head -n 10 > sequences
+*
+*    """
+*}
+*/
  
 /*
  * Collects all the sequences files into a single file
  * and prints the resulting file content when complete
  */
+
+process extract {
+    
+    input:
+        path 'all_hits' from hits_ch
+    
+    output: 
+        file 'sequences' into sequences_ch
+
+        """
+        cat all_hits >  sequences 
+        """
+    
+                }
+
+
+params.fiout = launchDir + "/" + params.out 
+
 sequences_ch
-    .collectFile(name: params.out)
-    .view { file -> "matching sequences:\n ${file.text}" }
+    .collectFile(name: params.fiout)
+    //.view { file -> "matching sequences:\n ${file.text}" }
+
+
+
+
+
