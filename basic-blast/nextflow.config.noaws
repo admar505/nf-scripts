@@ -13,17 +13,7 @@ params {
 
 
 process	{
-    
-    
-    executor = 'awsbatch'
-    queue = 'ProteinGAN_test_compute_env'
-    awscli = '/usr/bin/aws'
+
     container = 'ncbi/blast'
     
-}
-process {
-    region = 'us-east-1'
-    accessKey = 'AKIAVVYR2GEZLOG2EH7U'
-    bucketDir="s3://anjali-data"
-    docker.enabled = true
 }
