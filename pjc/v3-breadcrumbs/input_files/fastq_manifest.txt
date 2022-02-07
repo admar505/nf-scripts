@@ -1,0 +1,1 @@
+NA19725_A	NA19725	s3://1000genomes/phase3/data/NA19725/sequence_read/SRR032764_1.filt.fastq.gz	s3://1000genomes/phase3/data/NA19725/sequence_read/SRR032764_2.filt.fastq.gz	Solexa-16044	BI.PE.091118_SL-XBD_0005_FC43265AAXX.1	2010-01-05T00:00:00Z	ILLUMINA	BI

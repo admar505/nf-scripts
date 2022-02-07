@@ -1,0 +1,19 @@
+manifest {
+  nextflowVersion = '>= 20.01.0'
+}
+
+params {
+	qry = '/' +  "mgram.biotch.fa"
+    	database =  '/' + "TreeseiV2_FrozenGeneCatalog20081022.proteins.fasta"
+	chunkSize = 10
+	out = '/' + "test.params.blsp"
+	
+	}
+
+
+
+process	{
+
+    container = 'ncbi/blast'
+    
+}

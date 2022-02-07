@@ -12,12 +12,14 @@
 
 //print launchDir + "\n\n\n"
 
-params.query = launchDir +  '/' +  params.qry 
-params.db = launchDir + '/' + params.database
+//params.query = launchDir +  '/' +  params.qry 
+//params.db = launchDir + '/' + params.database
 
+params.query =  params.qry 
+params.db =  params.database
  
 db_name = file(params.db).name
-db_dir = file(params.db).parent 
+db_dir = 's3://' + file(params.db).parent 
 
        
 
@@ -32,6 +34,11 @@ Channel
     .splitFasta(by: params.chunkSize, file:true)
     .set { fasta_ch }
  
+Channel
+    .fromPath(params.db)
+    .set {database_ch}
+
+
 /*
  * Executes a BLAST job for each chunk emitted by the 'fasta_ch' channel
  * and creates as output a channel named 'top_hits' emitting the resulting
@@ -40,15 +47,17 @@ Channel
 process blast {
     input:
     path 'query.fa' from fasta_ch
-    path db from db_dir
+    path 'db' from database_ch
     
     output:
 
         file 'all_hits' into hits_ch       
  //   file 'top_hits' into hits_ch
+//old blast command:
+    //blastp -db $db_dir/$db_name -query query.fa -outfmt 6 > all_hits 
  
     """
-    blastp -db $db_dir/$db_name -query query.fa -outfmt 6 > all_hits 
+    blastp -db db  -query query.fa -outfmt 6 > all_hits 
     """
 
 }
@@ -67,7 +76,7 @@ process blast {
 *    file 'sequences' into sequences_ch
 * 
 *    """
-*    blastdbcmd -db $db/$db_name -entry_batch top_hits | head -n 10 > sequences
+*    blastdbcmd -db $db_dir/$db_name -entry_batch top_hits | head -n 10 > sequences
 *
 *    """
 *}
