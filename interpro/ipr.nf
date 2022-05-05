@@ -1,4 +1,4 @@
-et :set! /usr/bin/env ne://www.frontiersin.org/articles/10.3389/fmicb.2018.00323/full https://www.frontiersin.org/articles/10.3389/fmicb.2018.00323/full https://www.frontiersin.org/articles/10.3389/fmicb.2018.00323/full https://www.frontiersin.org/articles/10.3389/fmicb.2018.00323/full https://www.frontiersin.org/articles/10.3389/fmicb.2018.00323/full tflow
+#! /usr/bin/env nextflow
 
 nextflow.preview.dsl=2
 
@@ -7,23 +7,18 @@ nextflow.preview.dsl=2
  * given `params.foo` specify on the run command line `--foo some_value`.
  */
 
-params.gff_annotation = "/path/to/annotation.gff"
-params.genome = "/path/to/genome.fasta"
 params.outdir = "results"
 
-params.codon_table = 1
 
-params.records_per_file = 1000
+params.records_per_file = 100
 
 // blastp parameters
-params.blast_db_fasta = '/path/to/protein/database.fasta'
-params.blast_evalue = '1e-6'
 
 params.interproscan_db = ''
 
 // agat_sp_manage_functional_annotation.pl parameters
-params.id_prefix = 'NBIS'
-params.protein_existence = '5'
+//params.id_prefix = 'NBIS'
+//params.protein_existence = '5'
 
 log.info("""
 NBIS
@@ -35,17 +30,9 @@ NBIS
  |_| \\_|____/_____|_____/  Annotation Service
  Functional annotation workflow
  ===================================
- General parameters
-     gff_annotation                 : ${params.gff_annotation}
-     genome                         : ${params.genome}
      outdir                         : ${params.outdir}
  Parallelisation parameters
      records_per_file               : ${params.records_per_file}
- Gff2Protein parameters
-     codon_table                    : ${params.codon_table}
- Blast parameters
-     blast_db_fasta                 : ${params.blast_db_fasta}
-     blast_evalue                   : ${params.blast_evalue}
  Interproscan parameters
      interproscan_db                : ${params.interproscan_db}
  Merge functional annotation parameters
@@ -92,72 +79,28 @@ workflow functional_annotation {
         annotation = merge_functional_annotation.out[0]
 }
 
-process gff2protein {
-
-    label 'AGAT'
+process gff2protein {//ok, so this is emmits the proteins, I _THINK_
+                     //grab the protein channel from the blastand attempt to
+    label 'protein'  //haxx this bitch  
 
     input:
-    path gff_file
-    path genome_fasta
+    path proteins 
 
     output:
     path "${gff_file.baseName}_proteins.fasta"
 
-    script:
-    """
-    agat_sp_extract_sequences.pl -o ${gff_file.baseName}_proteins.fasta -f $genome_fasta \\
-        -p -cfs -cis -ct ${params.codon_table} --gff $gff_file
-    """
+    script://like, split or something? not sure here.
+    //"""
+    //agat_sp_extract_sequences.pl -o ${gff_file.baseName}_proteins.fasta -f $genome_fasta \\
+    //    -p -cfs -cis -ct ${params.codon_table} --gff $gff_file
+    //"""
     // agat_sp_extract_sequences.pl is a script from AGAT
-
-}
-
-process makeblastdb {
-
-    label 'blast'
-
-    input:
-    path fasta
-    val state
-
-    output:
-    path "*.fasta*"
-
-    when:
-    state == 'DBFILES_ABSENT'
-
-    script:
     """
-    if [[ "$fasta" =~ \\.f(ast|n)?a\$ ]]; then
-        makeblastdb -in $fasta -dbtype prot
-    else
-        cp $fasta protein.fasta
-        makeblastdb -in protein.fasta -dbtype prot
-    fi
+    splitfasta.pl <something>
     """
 
 }
 
-process blastp {
-
-    label 'blast'
-
-    input:
-    path fasta_file
-    path blastdb
-
-    output:
-    path "${fasta_file.baseName}_blast.tsv"
-
-    script:
-    // database = blastdb[0].toString() - ~/.p\w\w$/
-    database = blastdb.find { it =~ /\.f(ast|n)?a$/ }
-    """
-    blastp -query $fasta_file -db ${database} -num_threads ${task.cpus} \\
-        -evalue ${params.blast_evalue} -outfmt 6 -out ${fasta_file.baseName}_blast.tsv
-    """
-
-}
 
 process interproscan {
 
