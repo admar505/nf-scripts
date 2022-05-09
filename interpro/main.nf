@@ -8,7 +8,7 @@
 *params.db = "$baseDir/blast-db/pdb/tiny"
 */
 
-
+params.db = 's3://nextflow-data-390342521138'
  
 db_name = file(params.db).name //#these come from the config files 
 db_dir = file(params.db).parent 
