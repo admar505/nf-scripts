@@ -21,13 +21,6 @@ params.interproscan_db = ''
 //params.protein_existence = '5'
 
 log.info("""
-NBIS
-  _   _ ____ _____  _____
- | \\ | |  _ \\_   _|/ ____|
- |  \\| | |_) || | | (___
- | . ` |  _ < | |  \\___ \\
- | |\\  | |_) || |_ ____) |
- |_| \\_|____/_____|_____/  Annotation Service
  Functional annotation workflow
  ===================================
      outdir                         : ${params.outdir}
@@ -36,70 +29,56 @@ NBIS
  Interproscan parameters
      interproscan_db                : ${params.interproscan_db}
  Merge functional annotation parameters
-     id_prefix                      : ${params.id_prefix}
-     protein_existence              : ${params.protein_existence}
+     //id_prefix                      : ${params.id_prefix}
+     //protein_existence              : ${params.protein_existence}
  """)
 
-workflow {
+workflow {//#not sure I need this, but, I think I do and will replace this with the protein "method"
 
     main:
-        Channel.fromPath(params.gff_annotation, checkIfExists: true)
-            .ifEmpty { exit 1, "Cannot find gff file matching ${params.gff_annotation}!\n" }
-            .set {annotation}
-        Channel.fromPath(params.genome, checkIfExists: true)
-            .ifEmpty { exit 1, "Cannot find genome matching ${params.genome}!\n" }
-            .set {genome}
-        Channel.fromPath("${params.blast_db_fasta}" + (params.blast_db_fasta =~ /^(ht|f)tps?:/ ? '': "*"), checkIfExists: true)
-            .ifEmpty { exit 1, "Cannot find blast database files matching ${params.blast_db_fasta}?(.p*)" }
-            .set {blastdb}
-        functional_annotation(annotation,genome,blastdb)
+    Channel                                                                         
+        .fromPath(params.protein_fasta)                                                     
+        .splitFasta(by: params.chunkSize, file:true)                                
+        .set { protein }                                                           
+                                                                                
 
 }
 
 workflow functional_annotation {
 
-    take:
-        gff_file
-        genome
-        blastdb
 
     main:
-        makeblastdb(blastdb,blastdb.filter { it =~ /.p(hr|in|sq)$/ }.ifEmpty('DBFILES_ABSENT'))
-        makeblastdb.out.mix(blastdb.filter { !(it =~ /[^.]f(ast|n|)a$/) }).unique().collect().set{blastfiles}
-        gff2protein(gff_file,genome.collect())
-        blastp(gff2protein.out.splitFasta(by: params.records_per_file, file: true),
-            blastfiles)
-        interproscan(gff2protein.out.splitFasta(by: params.records_per_file, file: true))
-        merge_functional_annotation(gff_file,
-            blastp.out.collectFile(name:'blast_merged.tsv').collect(),
-            interproscan.out.collectFile(name:'interproscan_merged.tsv').collect(),
-            blastdb.collect())
+        //interproscan(gff2protein.out.splitFasta(by: params.records_per_file, file: true))
+        interproscan(protein.out.splitFasta(by: params.records_per_file, file: true))
+        merge_functional_annotation(
+            interproscan.out.collectFile(name:'interproscan_merged.tsv').collect()
+            )
 
     emit:
         annotation = merge_functional_annotation.out[0]
 }
 
-process gff2protein {//ok, so this is emmits the proteins, I _THINK_
-                     //grab the protein channel from the blastand attempt to
-    label 'protein'  //haxx this bitch  
+//process gff2protein { //ok, so this is emmits the proteins, I _THINK_
+                        //grab the protein channel from the blastand attempt to
+//    label 'protein'   //haxx this bitch  
 
-    input:
-    path proteins 
+//    input:
+//    path proteins 
 
-    output:
-    path "${gff_file.baseName}_proteins.fasta"
+//    output:
+//    path "${gff_file.baseName}_proteins.fasta"
 
-    script://like, split or something? not sure here.
+//    script://like, split or something? not sure here.
     //"""
     //agat_sp_extract_sequences.pl -o ${gff_file.baseName}_proteins.fasta -f $genome_fasta \\
     //    -p -cfs -cis -ct ${params.codon_table} --gff $gff_file
     //"""
     // agat_sp_extract_sequences.pl is a script from AGAT
-    """
-    splitfasta.pl <something>
-    """
+//    """
+//    splitfasta.pl <something>
+//    """
 
-}
+//}
 
 
 process interproscan {

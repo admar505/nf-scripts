@@ -8,18 +8,12 @@
 *params.db = "$baseDir/blast-db/pdb/tiny"
 */
 
-//qry = "mgram.biotch.fa"
-
-//print launchDir + "\n\n\n"
-
-//params.query = launchDir +  '/' +  params.qry 
-//params.db = launchDir + '/' + params.database
 
  
-db_name = file(params.db).name
+db_name = file(params.db).name //#these come from the config files 
 db_dir = file(params.db).parent 
 
-       
+includeConfig "$baseDir/config/compute_resources.config"
 
  
 /*
@@ -37,46 +31,24 @@ Channel
  * and creates as output a channel named 'top_hits' emitting the resulting
  * BLAST matches 
  */
-process blast {
+process ipr {
     input:
     path 'query.fa' from fasta_ch
     path db from db_dir
     
     output:
 
-        file 'all_hits' into hits_ch       
- //   file 'top_hits' into hits_ch
+//        file 'out.tsv'
+    file 'top_hits' into hits_ch
  
     """
-    blastp -db $db_dir/$db_name -query query.fa -outfmt 6 > all_hits 
+    bash interproscan.sh  ${db} --input query.fa    --iprlookup --goterms -pa -dp -t p  --formats  tsv   --tempdir /temp 
+
+
     """
 
 }
  
-/*
- * Each time a file emitted by the 'top_hits' channel an extract job is executed
- * producing a file containing the matching sequences
- *
-*
-*process extract {
-*    input:
-*    path 'top_hits' from hits_ch
-*    path db from db_dir
-* 
-*    output:
-*    file 'sequences' into sequences_ch
-* 
-*    """
-*    blastdbcmd -db $db/$db_name -entry_batch top_hits | head -n 10 > sequences
-*
-*    """
-*}
-*/
- 
-/*
- * Collects all the sequences files into a single file
- * and prints the resulting file content when complete
- */
 
 process extract {
     
@@ -87,7 +59,7 @@ process extract {
         file 'sequences' into sequences_ch
 
         """
-        cat all_hits >  sequences 
+        cat all_hits > ipr.results.tsv 
         """
     
                 }
